@@ -1,0 +1,31 @@
+#Processing Parameters C2RCC S2-MSI
+Valid-pixel expression: B8 > 0 && B8 < 0.1
+Salinity: 0.5 PSU
+Temperature: Respective LSWT of the lake on the day of the image
+Ozone: 330 DU
+Air Pressure at Sea Level: 1000 hPa
+Elevation: The lake's respective elevation
+TSM factor: 1.06
+TSM exponent: 0.942
+CHL Exponent: 1.04
+CHL factor: 21.0
+Threshold rtosa OOS: 0.05
+Threshold AC reflectances OOS: 0.1
+Threshold for cloud flag on down transmittance @865: 0.955
+Atmospheric aux data path: blank
+Alternative NN path: blank
+Set of neuronal nets: C2RCC-Nets
+#flags
+Output AC reflectances as rrs instead of rhow: Yes
+Derive water reflectances from path radiance and transmittance: No
+Output TOA reflectances: No
+Output gas corrected TOSA reflectances: No
+Output gas corrected TOSA reflectances of auto NN: No
+Output path radiance reflectances: No
+Output downward transmittance: No
+Output upward transmittance: No
+Output atmospherically corrected angular dependent reflectances: Yes
+Output normalized water leaving reflectances: Yes
+Output out of scope values: Yes
+Output irradiance attenuation coefficients: Yes
+Output uncertainties: Yes
