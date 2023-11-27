@@ -1,0 +1,84 @@
+---
+title: "Raster LWST"
+author: "Theo Krueger; Anna Joelle Greife"
+date: "2023-09-27"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(viridis)
+# for shapefile
+library(rgdal)
+
+# used with base plot
+library(raster)
+
+# used with ggplot because it's easier for me
+library(terra)
+library(broom)
+```
+
+```{r paths}
+project_folder <- "F:/NetCDFs_CCI/out/selected/Turkana/LSWT/"
+file_raster <- paste0(project_folder, "20191206_20201122_lake_surface_water_temperature.tif")
+folder_out <- paste0(project_folder, "/raster_plots/")
+```
+dir.exists(folder_shape)
+
+```{r load shapefile}
+shapefile <- readOGR("F:/NetCDFs_CCI/out/shps/Turkana_shp/Lake_Turkana.shp")
+```
+
+```{r ggplot with terra, fig.show='hide'}
+
+shapefile_tidy <- tidy(shapefile)
+n_bands <- 13 #insert number of bands from items in folder
+date_vector <- c("2019-12-06", "2019-12-08", "2020-08-11", "2020-08-14", "2020-10-17", "2020-10-18", "2020-10-22", "2020-10-23", "2020-10-25", "2020-10-28", "2020-11-12", "2020-11-15", "2020-11-22")
+cleaner1 <- 200
+cleaner2 <- 374
+
+for (i_band in 1:n_bands){  
+  date_str <- date_vector[i_band]
+  date <- as.Date(date_str)
+  name <- paste0(format(date,"%d. %B %Y"))
+  subname <- paste0("Lake Surface Water Temperature. Lake Turkana.")
+  print(paste0("Working on: ",name))
+  
+  rast_data <- rast(file_raster, lyrs = i_band) %>%
+    as.data.frame(xy=TRUE)
+  colnames(rast_data)[3] <- "value"
+
+  
+    if (nrow(rast_data) == 0) {print("No valid data. Skipping this band.") next}
+  
+  rast_data <- filter(rast_data, value < cleaner2 & value > cleaner1)
+  
+#  rast_data <- rast_data %>% filter(!(x < 30.25 & y < -8.2)) #Only for Tanganyika
+  
+ #  if (nrow(rast_data) == 0) {print("No valid data. Skipping this band.") next}  #Only for Tanganyika
+  
+  plot <- ggplot() +
+    geom_polygon(data = shapefile_tidy, aes( x = long, y = lat, group = group), fill="white", color="darkgrey") +
+    geom_raster(data = rast_data,aes(x = x, y = y, fill = value))+
+    labs(title = name, subtitle = subname)+
+    theme_classic()+
+    scale_fill_viridis(option="inferno")
+    
+
+#  ggsave(plot = plot, filename = paste0(folder_out, name, ".png")) #everyone except big bois
+  
+#  ggsave(plot = plot, filename = paste0(folder_out, name, ".png"), device = "png", width = 9.375, height = 6.25, dpi = 300) #Ky_Lake_100000013  
+  
+#  ggsave(plot = plot, filename = paste0(folder_out, name, ".png"), device = "png", width = 9.375, height = 12.25, dpi = 300) #Vo_Lake_24
+  
+  ggsave(plot = plot, filename = paste0(folder_out, name, ".png"), device = "png", width = 9.375, height = 18.25, dpi = 300)  #Big bois only Ta_7 and Tu_22
+ 
+#  ggsave(plot = plot, filename = paste0(folder_out, name, ".png"), device = "png", width = 12.375, height = 8.25, dpi = 300) #Ka_Lake_35
+}
+```

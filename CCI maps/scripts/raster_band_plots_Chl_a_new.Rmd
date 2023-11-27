@@ -1,0 +1,116 @@
+---
+title: "Raster Chl-a"
+author: "Theo Krueger, Anna Joelle Greife"
+date: "2023-11-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(viridis)
+# for shapefile
+library(rgdal)
+
+# used with base plot
+library(raster)
+
+# used with ggplot because it's easier for me
+library(terra)
+library(broom)
+```
+
+```{r paths}
+gc()
+project_folder <- "F:/NetCDFs_CCI/out/selected/Volta/Chla/"
+file_raster <- paste0(project_folder, "20160526_20200518_chla_mean.tif")
+folder_out <- paste0(project_folder, "/raster_plots/new/")
+```
+dir.exists(folder_shape)
+
+```{r load shapefile}
+shapefile <- readOGR("F:/NetCDFs_CCI/out/shps/Volta_shp/Lake_Volta.shp")
+```
+
+```{r ggplot with terra, fig.show='hide'}
+
+shapefile_tidy <- tidy(shapefile)
+n_bands <- 12 #insert number of bands from items in folder
+date_vector <- c("2016-05-26", "2016-05-29", "2018-01-02", "2018-01-03", "2018-01-07", "2018-05-14", "2018-05-17", "2018-05-18", "2018-05-19", "2020-05-13", "2020-05-16", "2020-05-18")
+
+
+
+
+cleaner <- 150
+
+for (i_band in 1:n_bands){  
+  date_str <- date_vector[i_band]
+  date <- as.Date(date_str)
+  name <- paste0(format(date,"%d. %B %Y"), " 97.5th Percentile")
+  subname <- paste0("Chl-a concentration. Lake Volta.")
+  print(paste0("Working on: ",name))
+  
+  rast_data <- rast(file_raster, lyrs = i_band) %>%
+    as.data.frame(xy=TRUE)
+  colnames(rast_data)[3] <- "value"
+ 
+  if (nrow(rast_data) == 0) {print("No valid data. Skipping this band.") 
+    next
+    }
+  
+  rast_data <- filter(rast_data, value < cleaner)
+  
+#  rast_data <- rast_data %>% filter(!(x < 30.25 & y < -8.2))  #Only for 7
+  
+#   if (nrow(rast_data) == 0) {print("No valid data. Skipping this band.")
+#     next
+#     }   #Only for 7
+  
+    rast_data <- rast_data %>% filter(!(x < -1 & y < 7))  #Only for 7
+  
+   if (nrow(rast_data) == 0) {print("No valid data. Skipping this band.") 
+     next
+      }  #Only for 24
+  
+  
+  hist <- hist(rast_data$value)
+  print(hist$breaks)
+  print(hist$counts)
+   
+  bins <- hist$breaks
+  binned <- rast_data %>% mutate(eimer = cut(value, bins, include.lowest=TRUE)) %>% group_by(eimer) %>% summarise(x,y,value,eimer,eimercounts = n())
+  write.csv(binned, paste0(folder_out, name, "_bins.csv"), row.names = FALSE)
+  
+  cutoff <- quantile(rast_data$value, c(0.975)) # create cutoff value
+  print(cutoff)
+  rast_data <- filter(rast_data, value < cutoff)
+  
+  plot <- ggplot() +
+    geom_polygon(data = shapefile_tidy, aes( x = long, y = lat, group = group), fill="white", color="darkgrey") +
+    geom_raster(data = rast_data,aes(x = x, y = y, fill = value))+
+    labs(title = name, subtitle = subname)+
+    scale_fill_viridis()+
+    theme_classic() 
+  
+
+  
+  
+  
+# ggsave(plot = plot, filename = paste0(folder_out, name, ".png"), device = "png", width = 9.25, height = 8.25, dpi = 300) #Na_Lake_1659
+  
+#  ggsave(plot = plot, filename = paste0(folder_out, name, ".png"), device = "png", width = 9.375, height = 6.25, dpi = 300) #Ky_Lake_100000013
+
+# ggsave(plot = plot, filename = paste0(folder_out, name, ".png"), device = "png", width = 12.375, height = 8.25, dpi = 300) #Ka_Lake_35
+  
+  ggsave(plot = plot, filename = paste0(folder_out, name, ".png"), device = "png", width = 9.375, height = 12.25, dpi = 300) #Vo_Lake_24
+ 
+# ggsave(plot = plot, filename = paste0(folder_out, name, ".png"), device = "png", width = 9.375, height = 18.25, dpi = 300)  #Big bois only Ta_7 and Tu_22
+  
+}
+```
+
+
+
